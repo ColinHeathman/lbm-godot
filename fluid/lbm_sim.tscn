@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://dwd41koydx2er"]
+
+[ext_resource type="Script" uid="uid://d3wu2r50y1bhc" path="res://fluid/lbm_sim_gpu.gd" id="1_fedhe"]
+[ext_resource type="Image" uid="uid://bkyyuvydnu4ai" path="res://fluid/obstacles.png" id="2_q2ia2"]
+[ext_resource type="Texture2D" uid="uid://b7f7x2m8qg0qu" path="res://fluid/gradient.tres" id="3_ye10r"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_fedhe"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_fs73m"]
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_fs73m"]
+width = 256
+height = 256
+noise = SubResource("FastNoiseLite_fs73m")
+
+[node name="LatticeSimulation" type="Node2D" unique_id=532746658]
+
+[node name="Sim" type="Node" parent="." unique_id=1619595129 node_paths=PackedStringArray("display", "display_normals")]
+script = ExtResource("1_fedhe")
+display = NodePath("../Color")
+display_normals = NodePath("../Normals")
+obstacles = ExtResource("2_q2ia2")
+noise = SubResource("FastNoiseLite_fedhe")
+gradient = ExtResource("3_ye10r")
+
+[node name="Color" type="Sprite2D" parent="." unique_id=565904655]
+scale = Vector2(2, 2)
+texture = SubResource("NoiseTexture2D_fs73m")
+centered = false
+
+[node name="Normals" type="Sprite2D" parent="." unique_id=929253141]
+position = Vector2(512, 0)
+scale = Vector2(2, 2)
+texture = SubResource("NoiseTexture2D_fs73m")
+centered = false

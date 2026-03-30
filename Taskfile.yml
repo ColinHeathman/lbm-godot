@@ -1,0 +1,55 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  godot_version: "4.6.1-stable"
+  bin_files:
+    map:
+      linux: Godot_v{{.godot_version}}_linux.x86_64
+      darwin: Godot_v{{.godot_version}}_macos.universal
+      windows: Godot_v{{.godot_version}}_win64.exe
+  godot_bin: '{{index .bin_files OS}}'
+  godot_zip: '{{.godot_bin}}.zip'
+
+  godot_url: "https://github.com/godotengine/godot-builds/releases/download/{{.godot_version}}/{{.godot_zip}}"
+
+  unzip_cmd:
+    map:
+      windows: 'powershell -Command "Expand-Archive -Path {{.godot_zip}} -DestinationPath ."'
+      linux: 'unzip -o {{.godot_zip}}'
+      darwin: 'unzip -o {{.godot_zip}}'
+  unzip: '{{index .unzip_cmd OS}}'
+
+tasks:
+  editor:
+    deps: [download]
+    cmds:
+      - engine/{{.godot_bin}} --editor .
+    silent: true
+
+  download:
+    desc: Download and extract Godot engine
+    generates:
+      - engine/{{.godot_bin}}
+    cmds:
+      - mkdir -p engine
+      - |
+        if [ ! -f "engine/{{.godot_zip}}" ]; then
+          echo "Downloading Godot {{.godot_version}}..."
+          curl -L -o "engine/{{.godot_zip}}" "{{.godot_url}}"
+        fi
+      - |
+        if [ ! -f "engine/{{.godot_bin}}" ]; then
+          echo "Extracting Godot..."
+          cd engine && {{.unzip}}
+          chmod +x {{.godot_bin}}
+          rm "{{.godot_zip}}"
+        fi
+
+  run:
+    desc: Runs the project as a e2e test
+    deps: [download]
+    cmds:
+      - engine/{{.godot_bin}} --import --export-pack Default game_debug.pck
+      - engine/{{.godot_bin}} --main-pack game_debug.pck

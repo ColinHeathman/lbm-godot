@@ -6,6 +6,9 @@ extends Node
 @export var noise: FastNoiseLite
 @export var gradient: GradientTexture1D
 
+@export var WIDTH = 256
+@export var HEIGHT = 256
+
 var iteration = 0
 
 var _rd: RenderingDevice
@@ -36,12 +39,10 @@ var _color_texture: RID
 var _gradient_texture: RID
 var _normal_texture: RID
 
-const WIDTH = 256
-const HEIGHT = 256
 const EMPTY = Color(0.0, 0.0, 0.0, 1.0)
 
-const WORKGROUP_X = WIDTH
-const WORKGROUP_Y = HEIGHT
+var WORKGROUP_X = WIDTH
+var WORKGROUP_Y = HEIGHT
 const INVOCATIONS_X = 1
 const INVOCATIONS_Y = 1
 
@@ -73,9 +74,8 @@ func _init_shaders() -> void:
 	_obstacle_texture_format = RDTextureFormat.new()
 	_obstacle_texture_format.width = WIDTH
 	_obstacle_texture_format.height = HEIGHT
-	_obstacle_texture_format.depth = 9
 	_obstacle_texture_format.mipmaps = 1
-	_obstacle_texture_format.texture_type = RenderingDevice.TEXTURE_TYPE_3D
+	_obstacle_texture_format.texture_type = RenderingDevice.TEXTURE_TYPE_2D
 	_obstacle_texture_format.format = _rd.DATA_FORMAT_R8_UINT
 	_obstacle_texture_format.usage_bits |= _rd.TEXTURE_USAGE_STORAGE_BIT
 	_obstacle_texture_format.usage_bits |= _rd.TEXTURE_USAGE_CAN_UPDATE_BIT
@@ -104,7 +104,7 @@ func _init_shaders() -> void:
 	_gradient_texture_format.usage_bits |= _rd.TEXTURE_USAGE_CAN_COPY_FROM_BIT
 
 	# Create compute pipelines
-	var fluid_shader_file := load("res://compute/shaders/fluid_lbm.glsl")
+	var fluid_shader_file := preload("res://fluid/shaders/fluid_lbm.glsl")
 	var fluid_shader_spirv: RDShaderSPIRV = fluid_shader_file.get_spirv()
 	_fluid_shader = _rd.shader_create_from_spirv(fluid_shader_spirv)
 	_fluid_pipeline = _rd.compute_pipeline_create(_fluid_shader)
@@ -121,7 +121,7 @@ func _init_shaders() -> void:
 	_fluid_obstacle_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	_fluid_obstacle_uniform.binding = 2
 
-	var visualization_shader_file := load("res://compute/shaders/visualization.glsl")
+	var visualization_shader_file := load("res://fluid/shaders/visualization.glsl")
 	var visualization_shader_spirv: RDShaderSPIRV = visualization_shader_file.get_spirv()
 	_visualization_shader = _rd.shader_create_from_spirv(visualization_shader_spirv)
 	_visualization_pipeline = _rd.compute_pipeline_create(_visualization_shader)
@@ -159,17 +159,13 @@ func _init_textures() -> void:
 	_normal_texture = _rd.texture_create(_color_texture_format, _default_texture_view)
 	assert(_rd.texture_is_valid(_normal_texture))
 	
-	# Initialize with noise data
-	var noise_image: Image = noise.get_image(WIDTH, HEIGHT)
-	var input_data := PackedFloat32Array()
-	
 	# Initialize all 9 layers of the 3D texture
+	var input_data := PackedFloat32Array()
 	for z in range(9):
 		for y in range(HEIGHT):
 			for x in range(WIDTH):
 				var color := EMPTY
 				color.r = 0.5
-				#color.r += (noise_image.get_pixel(x, y).r - 0.5)
 				input_data.append(color.r)
 	
 	# Upload initial data to input texture
@@ -177,8 +173,9 @@ func _init_textures() -> void:
 	_rd.texture_update(_lattice_textures[0], 0, data_bytes)
 
 	# Upload initial obstacle texture
-	obstacles.convert(Image.FORMAT_R8)
-	_rd.texture_update(_obstacle_texture, 0, obstacles.get_data())
+	if obstacles != null:
+		obstacles.convert(Image.FORMAT_R8)
+		_rd.texture_update(_obstacle_texture, 0, obstacles.get_data())
 
 	var gradient_image = gradient.get_image()
 	gradient_image.convert(Image.FORMAT_RGBAF)
@@ -296,4 +293,3 @@ func _display_lattice() -> void:
 		normal_bytes
 	)
 	display_normals.texture = ImageTexture.create_from_image(image_normal)
-	

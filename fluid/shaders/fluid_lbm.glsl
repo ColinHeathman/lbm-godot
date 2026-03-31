@@ -6,7 +6,7 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(binding = 0, r32f) uniform image3D in_lattice;
 layout(binding = 1, r32f) uniform image3D out_lattice;
-layout(binding = 2, r8) uniform image2D obstacles;
+layout(binding = 2, r8ui) uniform uimage2D obstacles;
 
 const int CTR = 0; // [CTR]
 const int E   = 1; // [E]
@@ -55,6 +55,13 @@ float[9] streaming_step(ivec2 global_pos) {
 			continue;
 		}
 
+		// Obstacles are zeros
+		// uint obstacle = imageLoad(obstacles, source_pos).r;
+		// if ((obstacle & 1) > 0) {
+		// 	mass[i] = 0.0;
+		// 	continue;
+		// }
+
 		mass[i] = imageLoad(in_lattice, ivec3(source_pos, i)).r;
 	}
 
@@ -76,6 +83,30 @@ void no_wall_pressure(out vec2 velocity, out float density, in float[9] mass) {
 
 	// average velocity
 	velocity = density > 0.0 ? momentum / density : vec2(0.0);
+}
+
+void zou_he_west_wall_velocity(vec2 wall_velocity, out vec2 velocity, out float density, inout float[9] mass) {
+	const float cst1 = 2.0 / 3.0;
+	const float cst2 = 1.0 / 6.0;
+	const float cst3 = 1.0 / 2.0;
+
+	velocity = wall_velocity;
+
+	// West wall: known are CTR, N, S, W, NW, SW
+	// Unknown: E, NE, SE
+	density = (mass[CTR] + mass[N] + mass[S] + 
+			   2.0 * mass[W] + 2.0 * mass[NW] + 
+			   2.0 * mass[SW]) / (1.0 - velocity.x);
+
+	mass[E] = mass[W] + cst1 * density * velocity.x;
+
+	mass[NE] = mass[NW] - cst3 * (mass[N] - mass[S]) + 
+			  cst2 * density * velocity.x + 
+			  cst3 * density * velocity.y;
+
+	mass[SE] = mass[SW] + cst3 * (mass[N] - mass[S]) + 
+			  cst2 * density * velocity.x - 
+			  cst3 * density * velocity.y;
 }
 
 void zou_he_east_wall_pressure(float wall_density, vec2 wall_velocity, out vec2 velocity, out float density, inout float[9] mass) {
@@ -100,30 +131,6 @@ void zou_he_east_wall_pressure(float wall_density, vec2 wall_velocity, out vec2 
 
 	mass[SW] = mass[SE] - cst3 * (mass[N] - mass[S]) - 
 			  cst2 * density * velocity.x + 
-			  cst3 * density * velocity.y;
-}
-
-void zou_he_west_wall_velocity(vec2 wall_velocity, out vec2 velocity, out float density, inout float[9] mass) {
-	const float cst1 = 2.0 / 3.0;
-	const float cst2 = 1.0 / 6.0;
-	const float cst3 = 1.0 / 2.0;
-
-	velocity = wall_velocity;
-
-	// West wall: known are CTR, N, S, W, NW, SW
-	// Unknown: E, NE, SE
-	density = (mass[CTR] + mass[N] + mass[S] + 
-			   2.0 * mass[W] + 2.0 * mass[NW] + 
-			   2.0 * mass[SW]) / (1.0 - velocity.x);
-
-	mass[E] = mass[W] + cst1 * density * velocity.x;
-
-	mass[NE] = mass[NW] - cst3 * (mass[N] - mass[S]) + 
-			  cst2 * density * velocity.x + 
-			  cst3 * density * velocity.y;
-
-	mass[SE] = mass[SW] + cst3 * (mass[N] - mass[S]) + 
-			  cst2 * density * velocity.x - 
 			  cst3 * density * velocity.y;
 }
 
@@ -283,6 +290,17 @@ float[9] get_equilibrium(ivec2 global_pos, float[9] mass) {
 	bool east_wall = global_pos.x == image_size.x - 1;
 	bool north_wall = global_pos.y == 0;
 	bool south_wall = global_pos.y == image_size.y - 1;
+	
+	uint obstacle = imageLoad(obstacles, global_pos).r;
+	bool west_obstacle = (obstacle & (1 << W)) > 0;
+	bool east_obstacle = (obstacle & (1 << E)) > 0;
+	bool north_obstacle = (obstacle & (1 << N)) > 0;
+	bool south_obstacle = (obstacle & (1 << S)) > 0;
+
+	// west_wall = west_wall || west_obstacle;
+	// east_wall = east_wall || east_obstacle;
+	north_wall = north_wall || north_obstacle;
+	south_wall = south_wall || south_obstacle;
 
 	// Apply boundary conditions
 	if (west_wall && north_wall) {
@@ -297,20 +315,30 @@ float[9] get_equilibrium(ivec2 global_pos, float[9] mass) {
 	} else if (east_wall && south_wall) {
 		// Southeast corner
 		zou_he_southeast_corner_velocity(global_pos, velocity, density, mass);
+	
 	} else if (west_wall) {
 		// West wall
-		vec2 wall_vel = vec2(0.0, 0.0); // Example inlet velocity
+		vec2 wall_vel = vec2(0.2, 0.0); // Example inlet velocity
 		zou_he_west_wall_velocity(wall_vel, velocity, density, mass);
 	} else if (east_wall) {
 		// East wall
 		vec2 wall_vel = vec2(0.0, 0.0); // Example outlet velocity
-		// float wall_density = 0.5; // Example inlet velocity
+		float wall_density = 3.25; // Example outlet pressure
+		// zou_he_east_wall_velocity(wall_vel, velocity, density, mass);
+		zou_he_east_wall_pressure(wall_density, wall_vel, velocity, density, mass);
+	
+	} else if (west_obstacle) {
+		// West wall
+		vec2 wall_vel = vec2(0.0, 0.0); // Example inlet velocity
+		zou_he_west_wall_velocity(wall_vel, velocity, density, mass);
+	} else if (east_obstacle) {
+		// East wall
+		vec2 wall_vel = vec2(0.0, 0.0); // Example outlet velocity
 		zou_he_east_wall_velocity(wall_vel, velocity, density, mass);
-		// zou_he_east_wall_pressure(wall_density, wall_vel, velocity, density, mass);
 
 	} else if (north_wall) {
 		// North wall
-		vec2 wall_vel = vec2(0.5, 0.0); // No-slip
+		vec2 wall_vel = vec2(0.0, 0.0); // No-slip
 		zou_he_north_wall_velocity(wall_vel, velocity, density, mass);
 	} else if (south_wall) {
 		// South wall
@@ -345,7 +373,7 @@ float[9] get_equilibrium(ivec2 global_pos, float[9] mass) {
 float[9] collision_step(float[9] mass, float[9] equilibrium) {
 
 	// Two-Relaxation-Time (TRT) collision parameters
-	const float tau_lbm = 1.0;           // Main relaxation time
+	const float tau_lbm = 1.00;          // Main relaxation time
 	const float lambda_trt = 0.25;       // TRT magic parameter (1/4 for stability)
 	const float tau_p_lbm = tau_lbm;
 	const float tau_m_lbm = lambda_trt / (tau_p_lbm - 0.5) + 0.5;

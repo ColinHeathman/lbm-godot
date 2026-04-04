@@ -15,13 +15,13 @@ const S: int   = 1<<4;
 
 func _run():
 	var img = Image.create(WIDTH, HEIGHT, false, Image.FORMAT_R8)
+	var input = preload("res://fluid/obstacles/input_1.png")
 	
 	for y in range(HEIGHT):
 		for x in range(WIDTH):
 			var px = Vector2i(x, y)
-			var r = px - centre
-			var r_len = r.length()
-			if r_len > RADIUS:
+			
+			if input.get_pixelv(px).a8 == 0:
 				img.set_pixel(x, y, 0)
 			else:
 				img.set_pixel(x, y, Color.from_rgba8(OBSTACLE, 0, 0, 0))
@@ -41,4 +41,4 @@ func _run():
 
 			img.set_pixel(x, y, Color.from_rgba8(r, 0, 0, 0))
 
-	img.save_png("res://fluid/wind_tunnel/obstacles.png")
+	img.save_png("res://fluid/obstacles/obstacles_1.png")

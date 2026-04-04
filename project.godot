@@ -21,5 +21,10 @@ config/icon="res://icon.svg"
 
 [display]
 
-window/size/viewport_width=1024
-window/size/viewport_height=1024
+window/size/viewport_width=2048
+window/size/viewport_height=512
+
+[editor]
+
+movie_writer/movie_file="movie.ogv"
+movie_writer/fps=155

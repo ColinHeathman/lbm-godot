@@ -1,0 +1,14 @@
+[remap]
+
+importer="image"
+type="Image"
+uid="uid://bko182rl7m57l"
+path="res://.godot/imported/obstacles_2.png-e3a66b105cc2203d1a3bbeb14ff8f0c5.image"
+
+[deps]
+
+source_file="res://fluid/obstacles/obstacles_2.png"
+dest_files=["res://.godot/imported/obstacles_2.png-e3a66b105cc2203d1a3bbeb14ff8f0c5.image"]
+
+[params]
+

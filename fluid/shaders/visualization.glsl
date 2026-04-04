@@ -37,8 +37,19 @@ vec4 get_density_color(float[9] mass) {
 		density += mass[i];
 	}
 
+	// Normalize around 0
+	float a = (2.0 * density / 9.0) - 1.0;
+	
+
+	// Rational sigmoid (tunable k)
+	float k = 10.0;
+	float s = k * a / (1.0 + k * abs(a));
+
+	// Map to [0, 255]
+	float c = 128.0 + 128.0 * s;
+
 	// Clamp input
-	return imageLoad(in_gradient, ivec2(clamp(density * 255, 0.0, 255.0), 0));
+	return imageLoad(in_gradient, ivec2(clamp(c, 0.0, 255.0), 0));
 }
 
 vec4 get_flow_color(float[9] mass) {

@@ -6,6 +6,24 @@ extends Node
 @export var noise: FastNoiseLite
 @export var gradient: GradientTexture1D
 
+@export var initial_density: float = 0.5
+@export var initial_velocity: Vector2 = Vector2(0.0, 0.0)
+
+@export var tau: float = 1.0
+
+@export var w_density: float = 0.0
+@export var w_velocity: Vector2 = Vector2(0.0, 0.0)
+
+@export var e_density: float = 0.0
+@export var e_velocity: Vector2 = Vector2(0.0, 0.0)
+
+@export var n_density: float = 0.0
+@export var n_velocity: Vector2 = Vector2(0.0, 0.0)
+
+@export var s_density: float = 0.0
+@export var s_velocity: Vector2 = Vector2(0.0, 0.0)
+
+
 @export var WIDTH = 256
 @export var HEIGHT = 256
 
@@ -17,6 +35,7 @@ var _fluid_pipeline: RID
 var _fluid_input_uniform: RDUniform
 var _fluid_output_uniform: RDUniform
 var _fluid_obstacle_uniform: RDUniform
+var _fluid_params_uniform: RDUniform
 var _fluid_uniform_set: RID
 
 var _visualization_shader: RID
@@ -45,6 +64,19 @@ var WORKGROUP_X = WIDTH
 var WORKGROUP_Y = HEIGHT
 const INVOCATIONS_X = 1
 const INVOCATIONS_Y = 1
+
+enum {
+	NW,
+	N,
+	NE,
+	W,
+	C,
+	E,
+	SW,
+	S,
+	SE,
+}
+
 
 const flow_vectors: Array[Vector2i] = [
 	Vector2i(-1,-1), Vector2i(0,-1), Vector2i(1,-1),
@@ -120,8 +152,11 @@ func _init_shaders() -> void:
 	_fluid_obstacle_uniform = RDUniform.new()
 	_fluid_obstacle_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	_fluid_obstacle_uniform.binding = 2
+	_fluid_params_uniform = RDUniform.new()
+	_fluid_params_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_UNIFORM_BUFFER
+	_fluid_params_uniform.binding = 3
 
-	var visualization_shader_file := load("res://fluid/shaders/visualization.glsl")
+	var visualization_shader_file := preload("res://fluid/shaders/visualization.glsl")
 	var visualization_shader_spirv: RDShaderSPIRV = visualization_shader_file.get_spirv()
 	_visualization_shader = _rd.shader_create_from_spirv(visualization_shader_spirv)
 	_visualization_pipeline = _rd.compute_pipeline_create(_visualization_shader)
@@ -165,7 +200,15 @@ func _init_textures() -> void:
 		for y in range(HEIGHT):
 			for x in range(WIDTH):
 				var color := EMPTY
-				color.r = 0.5
+				color.r = self.initial_density
+				if z == W:
+					color.r -= initial_velocity.x
+				if z == E:
+					color.r += initial_velocity.x
+				if z == N:
+					color.r -= initial_velocity.y
+				if z == S:
+					color.r += initial_velocity.y
 				input_data.append(color.r)
 	
 	# Upload initial data to input texture
@@ -191,8 +234,30 @@ func _create_uniform_sets() -> void:
 	_fluid_input_uniform.add_id(_lattice_textures[0])
 	_fluid_output_uniform.add_id(_lattice_textures[1])
 	_fluid_obstacle_uniform.add_id(_obstacle_texture)
+
+	var _pad: float = 0.0
+	var byte_array_float = PackedFloat32Array([
+		tau,
+		w_density,
+		e_density,
+		n_density,
+		s_density,
+		_pad,
+		w_velocity.x, w_velocity.y,
+		e_velocity.x, e_velocity.y,
+		n_velocity.x, n_velocity.y,
+		s_velocity.x, s_velocity.y,
+		_pad,
+		_pad,
+	]).to_byte_array()
+
+	# var byte_array_vec2 = PackedVector2Array([e_velocity, w_velocity, n_velocity, s_velocity]).to_byte_array()
+	# var parameter_pba = byte_array_float + byte_array_vec2
+	var parameter_buffer := _rd.uniform_buffer_create(byte_array_float.size(), byte_array_float)
+	_fluid_params_uniform.add_id(parameter_buffer)
+
 	_fluid_uniform_set = _rd.uniform_set_create(
-		[_fluid_input_uniform, _fluid_output_uniform, _fluid_obstacle_uniform],
+		[_fluid_input_uniform, _fluid_output_uniform, _fluid_obstacle_uniform, _fluid_params_uniform],
 		_fluid_shader,
 		0
 	)
@@ -220,7 +285,7 @@ func _swap() -> void:
 	_fluid_input_uniform.add_id(_lattice_textures[0])
 	_fluid_output_uniform.add_id(_lattice_textures[1])
 	_fluid_uniform_set = _rd.uniform_set_create(
-		[_fluid_input_uniform, _fluid_output_uniform, _fluid_obstacle_uniform],
+		[_fluid_input_uniform, _fluid_output_uniform, _fluid_obstacle_uniform, _fluid_params_uniform],
 		_fluid_shader,
 		0
 	)

@@ -27,8 +27,6 @@ extends Node
 @export var WIDTH = 256
 @export var HEIGHT = 256
 
-var iteration = 0
-
 var _rd: RenderingDevice
 var _fluid_shader: RID
 var _fluid_pipeline: RID
@@ -284,6 +282,7 @@ func _swap() -> void:
 	_fluid_output_uniform.clear_ids()
 	_fluid_input_uniform.add_id(_lattice_textures[0])
 	_fluid_output_uniform.add_id(_lattice_textures[1])
+	_rd.free_rid(_fluid_uniform_set)
 	_fluid_uniform_set = _rd.uniform_set_create(
 		[_fluid_input_uniform, _fluid_output_uniform, _fluid_obstacle_uniform, _fluid_params_uniform],
 		_fluid_shader,
@@ -293,6 +292,7 @@ func _swap() -> void:
 	# Update visualization uniform set to read from the fluid output texture
 	_visualization_input_uniform.clear_ids()
 	_visualization_input_uniform.add_id(_lattice_textures[1])
+	_rd.free_rid(_visualization_uniform_set)
 	_visualization_uniform_set = _rd.uniform_set_create(
 		[_visualization_input_uniform, _visualization_gradient_uniform, _visualization_color_uniform, _visualization_normal_uniform],
 		_visualization_shader,
@@ -325,8 +325,7 @@ func _process(_delta: float) -> void:
 		# Swap textures for next frame
 		_swap()
 		
-		#DDD.set_text("iteration", iteration)
-		iteration += 1
+		%FPS.update()
 	
 	# Display the visualization result
 	_display_lattice()

@@ -24,7 +24,7 @@ obstacles = ExtResource("2_p2yfb")
 noise = SubResource("FastNoiseLite_fedhe")
 gradient = ExtResource("3_0xvlu")
 tau = 0.7
-w_velocity = Vector2(0.15, 0)
+w_velocity = Vector2(0.175, 0)
 e_density = 4.5
 WIDTH = 2048
 
@@ -49,6 +49,7 @@ theme_override_constants/margin_left = 10
 theme_override_constants/margin_bottom = 10
 
 [node name="FPS" type="Label" parent="CanvasLayer/Screen" unique_id=508360876]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 8

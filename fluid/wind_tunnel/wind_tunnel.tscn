@@ -50,6 +50,7 @@ theme_override_constants/margin_left = 10
 theme_override_constants/margin_bottom = 10
 
 [node name="FPS" type="Label" parent="CanvasLayer/Screen" unique_id=796592988]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 8

@@ -42,3 +42,10 @@ This is a simple example showing the fluid being forced through a narrow corrido
 ## About
 
 I originally started this project with the intent of exploring the Lattice Boltzmann Method as a possible game mechanic in a sandbox simulation game. Unfortunately the simulation is pretty unstable and easy to break, so it's not very useful for a game in it's current state. The code in this repo is still pretty rough, but I find the examples to be beautiful enough to be worth sharing. I hope you find it useful.
+
+## Running the code
+
+This repo can be opened as a Godot project, it was developed using v4.6.1-stable.
+
+If you don't have Godot installed, you can also run it via the [Taskfile](https://taskfile.dev/) with `task run` which should work on Mac, Windows, and Linux
+

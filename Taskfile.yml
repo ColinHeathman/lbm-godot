@@ -51,5 +51,4 @@ tasks:
     desc: Runs the project as a e2e test
     deps: [download]
     cmds:
-      - engine/{{.godot_bin}} --import --export-pack Default game_debug.pck
-      - engine/{{.godot_bin}} --main-pack game_debug.pck
+      - engine/{{.godot_bin}}

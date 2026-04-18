@@ -9,9 +9,11 @@ A real time 2D fluid simulation running on a compute shader through Godot's Rend
 
 ## Examples
 
+All of these examples were run on my Ryzen 5800X3D and RX 6800xt. The UPS is simulation "updates per second" since the frame is only updated once every 10 updates.
+
 **Driven Cavity**
 
-This is a simple driven cavity example. The fluid along the north wall is driven to the right at a constant velocity. Think of an empty box being driven down a highway.
+This is a 512x512 simple driven cavity example. The fluid along the north wall is driven to the right at a constant velocity. Think of an empty box being driven down a highway.
 
 The top view shows velocity, where red is fast moving fluid, while blue is slow moving fluid.
 
@@ -23,7 +25,7 @@ The second view shows the direction of flow using standard normal map colors. Th
 
 **Wind Tunnel**
 
-This example is a simple cylinder in a wind tunnel. At the start of the simulation a shockwave is visible moving from left to right. The fluid is moving fast enough to create vortices behind the cylinder.
+This 2048x256 example is a simple cylinder in a wind tunnel. At the start of the simulation a shockwave is visible moving from left to right. The fluid is moving fast enough to create vortices behind the cylinder.
 
 <p align="center">
   <img src="recordings/wind_tunnel.webp" alt="preview of a wind tunnel simulation. A single cylinder has turbulent waves in it's wake" />
@@ -32,7 +34,7 @@ This example is a simple cylinder in a wind tunnel. At the start of the simulati
 
 **Corridor**
 
-This is a simple example showing the fluid being forced through a narrow corridor. Some interesting flow pockets are visible in the normal map.
+This is a 2048x256 sim showing the fluid being forced through a narrow corridor. Some interesting flow pockets are visible in the normal map.
 
 <p align="center">
   <img src="recordings/corridor.webp" alt="preview of a wind tunnel simulation. A pair of boxes directs the windflow up and down" />
